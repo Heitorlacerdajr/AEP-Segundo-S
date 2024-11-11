@@ -1,0 +1,313 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <windows.h>
+
+#define FILE_NAME "usuarios.txt"
+
+// Definir cor
+void setColor(int color) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);
+}
+
+// criptografia
+void criptografar(char *str) {
+    while (*str) {
+        *str = *str + 2;
+        str++;
+    }
+}
+
+void descriptografar(char *str) {
+    while (*str) {
+        *str = *str - 2;
+        str++;
+    }
+}
+
+// struct principal
+struct dados {
+    char nome[20];
+    char email[20];
+    char senha[20];
+};
+
+// validar senha
+int validarSenhaSegura(const char *senha) {
+    int temMaiuscula = 0, temMinuscula = 0, temNumero = 0;
+    int i = 0;
+
+    while (senha[i] != '\0') {
+        i++;
+    }
+    if (i < 8) return 0;
+
+    for (i = 0; senha[i] != '\0'; i++) {
+        char c = senha[i];
+        if (c >= 'A' && c <= 'Z') temMaiuscula = 1;
+        if (c >= 'a' && c <= 'z') temMinuscula = 1;
+        if (c >= '0' && c <= '9') temNumero = 1;
+        if (temMaiuscula && temMinuscula && temNumero) return 1;
+    }
+    return 0;
+}
+
+// aviso [Vermelho]
+void mensagemEmVermelho(const char *mensagem) {
+    setColor(4); 
+    printf("%s\n", mensagem);
+    setColor(7);
+}
+
+// aviso [Azul]
+void mensagemEmAzul(const char *mensagem) {
+    setColor(1); // Azul
+    printf("%s\n", mensagem);
+    setColor(7); 
+}
+
+//incluir usuario
+void incluirUsuario() {
+    struct dados usuario;
+    char confirmaSenha[20];
+    FILE *file = fopen(FILE_NAME, "a");
+
+    if (!file) {
+        mensagemEmVermelho("\nErro ao abrir o arquivo.");
+        return;
+    }
+
+    printf("Digite o nome do usuario: ");
+    scanf(" %[^\n]", usuario.nome);
+    printf("Digite o email do usuario: ");
+    scanf(" %[^\n]", usuario.email);
+
+    do {
+        printf("Digite uma senha segura: ");
+        scanf(" %[^\n]", usuario.senha);
+        printf("Confirme a senha: ");
+        scanf(" %[^\n]", confirmaSenha);
+
+        if (strcmp(usuario.senha, confirmaSenha) != 0) {
+            mensagemEmVermelho("\nSenhas n?o conferem! Tente novamente.");
+        } else if (!validarSenhaSegura(usuario.senha)) {
+            mensagemEmVermelho("\nSenha insegura! Certifique-se de usar letras mai?sculas, min?sculas e n?meros.");
+        }
+    } while (strcmp(usuario.senha, confirmaSenha) != 0 || !validarSenhaSegura(usuario.senha));
+
+    criptografar(usuario.nome);
+    criptografar(usuario.email);
+    criptografar(usuario.senha);
+
+    fprintf(file, "%s %s %s\n", usuario.nome, usuario.email, usuario.senha);
+    fclose(file);
+    mensagemEmAzul("\nUsuario cadastrado com sucesso!");
+}
+
+
+
+//alterar usuario
+void alterarUsuario() {
+    struct dados usuario;
+    FILE *file = fopen(FILE_NAME, "r");
+    FILE *temp = fopen("temp.txt", "w");
+    int usuariosEncontrados = 0, usuarioParaAlterar = 0, usuarioAtual = 1, opcaoAlteracao;
+
+    if (!file || !temp) {
+        mensagemEmVermelho("Erro ao abrir o arquivo.");
+        return;
+    }
+
+    printf("\n___________________________________________________________________________________");
+    printf("\nUsuarios cadastrados:");
+    printf("\n-----------------------------------------------------------------------------------\n");
+
+    while (fscanf(file, "%s %s %s", usuario.nome, usuario.email, usuario.senha) != EOF) {
+        usuariosEncontrados = 1;
+        descriptografar(usuario.nome);
+        descriptografar(usuario.email);
+        printf("%d. Nome: %-40s E-mail: %-30s\n", usuarioAtual, usuario.nome, usuario.email);
+        usuarioAtual++;
+    }
+
+    if (!usuariosEncontrados) {
+        mensagemEmVermelho("Nenhum usuario cadastrado.");
+    } else {
+        printf("\n___________________________________________________________________________________");
+        printf("\nDigite o numero do usuario para alterar (ou 0 para cancelar): ");
+        scanf("%d", &usuarioParaAlterar);
+
+        if (usuarioParaAlterar == 0) {
+            mensagemEmVermelho("Alteracao cancelada.\n");
+            fclose(file);
+            fclose(temp);
+            remove("temp.txt");
+            return;
+        }
+
+        rewind(file);
+        usuarioAtual = 1;
+        while (fscanf(file, "%s %s %s", usuario.nome, usuario.email, usuario.senha) != EOF) {
+            if (usuarioAtual == usuarioParaAlterar) {
+                printf("\n___________________________________________________________________________________");
+                printf("\nEscolha a opcao de alteracao:");
+                printf("\n-----------------------------------------------------------------------------------\n");
+                printf("1. Alterar Nome\n");
+                printf("2. Alterar E-mail\n");
+                printf("3. Alterar Senha\n");
+                printf("\n___________________________________________________________________________________");
+                printf("\nEscolha uma opcao: ");
+                scanf("%d", &opcaoAlteracao);
+
+                if (opcaoAlteracao == 1) {
+                    printf("Digite o novo nome: ");
+                    scanf(" %[^\n]", usuario.nome);
+                } else if (opcaoAlteracao == 2) {
+                    printf("Digite o novo email: ");
+                    scanf(" %[^\n]", usuario.email);
+                } else if (opcaoAlteracao == 3) {
+                    printf("Digite a nova senha: ");
+                    scanf(" %[^\n]", usuario.senha);
+                } else {
+                    mensagemEmVermelho("Opcao invalida!");
+                    fclose(file);
+                    fclose(temp);
+                    remove("temp.txt");
+                    return;
+                }
+
+                // criptografar novos dados
+                criptografar(usuario.nome);
+                criptografar(usuario.email);
+                criptografar(usuario.senha);
+            }
+            fprintf(temp, "%s %s %s\n", usuario.nome, usuario.email, usuario.senha);
+            usuarioAtual++;
+        }
+        mensagemEmAzul("\nUsuario alterado com sucesso!");
+    }
+
+    fclose(file);
+    fclose(temp);
+    remove(FILE_NAME);
+    rename("temp.txt", FILE_NAME);
+}
+
+//excluir usuarios
+void excluirUsuario() {
+    struct dados usuario;
+    FILE *file = fopen(FILE_NAME, "r");
+    FILE *temp = fopen("temp.txt", "w");
+    int usuariosEncontrados = 0, usuarioParaExcluir = 0, usuarioAtual = 1;
+
+    if (!file || !temp) {
+        mensagemEmVermelho("Erro ao abrir o arquivo.");
+        return;
+    }
+    printf("___________________________________________________________________________________");
+    printf("\nUsuarios cadastrados:\n");
+    printf("\n-----------------------------------------------------------------------------------\n");
+    while (fscanf(file, "%s %s %s", usuario.nome, usuario.email, usuario.senha) != EOF) {
+        usuariosEncontrados = 1;
+        descriptografar(usuario.nome);
+        descriptografar(usuario.email);
+        printf("%d. Nome: %-40s E-mail: %-30s\n", usuarioAtual, usuario.nome, usuario.email);
+        usuarioAtual++;
+    }
+
+    if (!usuariosEncontrados) {
+        mensagemEmVermelho("Nenhum usuario cadastrado.");
+    } else {
+        printf("\n___________________________________________________________________________________");
+        printf("\nDigite o numero do usuario a ser excluido (ou 0 para cancelar): ");
+        scanf("%d", &usuarioParaExcluir);
+
+        if (usuarioParaExcluir == 0) {
+            mensagemEmVermelho("Exclusao cancelada.\n");
+            fclose(file);
+            fclose(temp);
+            remove("temp.txt");
+            return;
+        }
+
+        rewind(file);
+        usuarioAtual = 1;
+        while (fscanf(file, "%s %s %s", usuario.nome, usuario.email, usuario.senha) != EOF) {
+            if (usuarioAtual != usuarioParaExcluir) {
+                fprintf(temp, "%s %s %s\n", usuario.nome, usuario.email, usuario.senha);
+            }
+            usuarioAtual++;
+        }
+        mensagemEmAzul("\nUsuario excluido com sucesso!");
+    }
+
+    fclose(file);
+    fclose(temp);
+    remove(FILE_NAME);
+    rename("temp.txt", FILE_NAME);
+}
+
+//listar usuarios
+void listarUsuarios() {
+    struct dados usuario;
+    FILE *file = fopen(FILE_NAME, "r");
+    int usuariosEncontrados = 0;
+
+    if (!file) {
+        mensagemEmVermelho("\nErro ao abrir o arquivo.");
+        return;
+    }
+
+    printf("Lista de Usuarios:\n");
+    printf("___________________________________________________________________________________\n");
+    while (fscanf(file, "%s %s %s", usuario.nome, usuario.email, usuario.senha) != EOF) {
+        usuariosEncontrados = 1;
+        descriptografar(usuario.nome);
+        descriptografar(usuario.email);
+        printf("\nNome: %-40s E-mail: %-30s\n", usuario.nome, usuario.email);
+        printf("Senha: *********\n");
+    }
+    printf("\n___________________________________________________________________________________\n");
+    if (!usuariosEncontrados) {
+        mensagemEmVermelho("\nNenhum usuario cadastrado.");
+    }
+    fclose(file);
+}
+
+//menu principal
+void menu() {
+    int opcao;
+    do {
+    	printf("___________________________________________________________________________________\n");
+        printf("Menu Admin");
+        printf("\n___________________________________________________________________________________\n");
+        printf("\n1. Cadastrar Usuario");
+        printf("\n2. Alterar Usuario");
+        printf("\n3. Excluir Usuario");
+        printf("\n4. Listar Usuarios");
+        printf("\n___________________________________________________________________________________");
+        printf("\nEscolha uma opcao: ");
+        scanf("%d", &opcao);
+
+        if (opcao == 1) {
+            incluirUsuario();
+        } else if (opcao == 2) {
+            alterarUsuario();
+        } else if (opcao == 3) {
+            excluirUsuario();
+        } else if (opcao == 4) {
+            listarUsuarios();
+        } else {
+            mensagemEmVermelho("Opcao invalida! Tente novamente.");
+        }
+    } while (opcao != 5);
+}
+
+int main() {
+    menu();
+    return 0;
+}
+
+
