@@ -287,20 +287,35 @@ void menu() {
         printf("\n2. Alterar Usuario");
         printf("\n3. Excluir Usuario");
         printf("\n4. Listar Usuarios");
+        printf ("\n5. Sair");
         printf("\n___________________________________________________________________________________");
         printf("\nEscolha uma opcao: ");
         scanf("%d", &opcao);
 
-        if (opcao == 1) {
-            incluirUsuario();
-        } else if (opcao == 2) {
-            alterarUsuario();
-        } else if (opcao == 3) {
-            excluirUsuario();
-        } else if (opcao == 4) {
-            listarUsuarios();
-        } else {
-            mensagemEmVermelho("Opcao invalida! Tente novamente.");
+        switch (opcao) {
+            case 1: {
+                incluirUsuario();
+                break;
+            }
+            case 2: {
+                alterarUsuario();
+                break;
+            }
+            case 3: {
+                excluirUsuario();
+                break;
+            }
+            case 4: {
+                listarUsuarios();
+                break;
+            }
+            case 5: {
+                printf ("\n\nSaindo...");
+                break;
+            }
+            default: {
+                mensagemEmVermelho("Opcao invalida! Tente novamente.");
+            }
         }
     } while (opcao != 5);
 }
